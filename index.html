@@ -595,6 +595,15 @@
             stack: []
         };
 
+        function saveState() {
+            const clone = JSON.parse(JSON.stringify(gameState, (key, value) => {
+                if (key === 'stack') return undefined; // スタックは保存しない
+                return value;
+            }));
+            gameState.stack.push(clone);
+            if (gameState.stack.length > 50) gameState.stack.shift();
+        }
+
         function toggleOverlay(id, show) {
             soundTap();
             document.getElementById(id).style.display = show ? 'flex' : 'none';
@@ -643,11 +652,10 @@
         function recordScore(points) {
             if (gameState.gameOver || gameState.isSetup) return;
             soundTap();
-
             const team = gameState.teams[gameState.activeTeam];
             if (team.disqualified) return;
 
-            gameState.stack.push(JSON.parse(JSON.stringify(gameState)));
+            saveState();
 
             if (points === 0) {
                 team.misses++;
@@ -656,110 +664,12 @@
                 team.score += points;
             }
 
-            let msg = "";
-            if (team.score > 50) {
-                soundMistake();
-                team.score = 25;
-                msg = `${team.name}が 50てんを こえたので 25てんに もどりました！`;
-            }
-
-            if (team.misses >= 3) {
-                soundMistake();
-                // 3連続ミスの場合、モーダルを表示
-                document.getElementById('miss-title').innerText = `${team.name}が 3かい ミス！`;
-                toggleOverlay('miss-choice-overlay', true);
-                return; // 処理を一時中断
-            }
-
-            finishTurn(msg);
-        }
-
-        function handleMissChoice(choice) {
-            toggleOverlay('miss-choice-overlay', false);
-            const team = gameState.teams[gameState.activeTeam];
-            let msg = "";
-
-            if (choice === 'continue') {
-                soundSuccess();
-                team.misses = 0; // ミスをリセット
-                msg = `${team.name}は まだまだ つづけるよ！`;
-            } else {
-                soundMistake();
-                team.disqualified = true;
-                team.score = 0;
-                showWinner((gameState.activeTeam + 1) % 2); // 相手の勝ち
-                return;
-            }
-
-            finishTurn(msg);
-        }
-
-        function finishTurn(msg) {
-            const team = gameState.teams[gameState.activeTeam];
-            team.history.unshift({ points: team.history.length > 0 && team.misses === 0 && team.history[0].points === 0 ? 0 : (team.misses > 0 ? 0 : team.history[0]?.points || 0), score: team.score });
-            // 履歴の処理を少し修正（recordScoreでunshiftする前にモーダルが出るため）
-            if (team.history.length === 0 || team.history[0].score !== team.score) {
-                 // 既にrecordScoreで入っていない場合のみ追加（ミス時の処理用）
-                 // 実際にはrecordScore内でunshiftする前に中断しているので、ここで調整
-            }
-
-            // 正しい履歴記録
-            if (team.history.length === 0 || team.history[0].points !== (team.misses > 0 ? 0 : 0)) {
-                // recordScoreの直後にここに来る場合
-            }
-            
-            // 修正版ロジック
-            updateTeamHistory();
-
-            if (team.score === 50) {
-                showWinner(gameState.activeTeam);
-            }
-
-            if (!gameState.gameOver) {
-                gameState.activeTeam = (gameState.activeTeam + 1) % 2;
-                if (gameState.teams[gameState.activeTeam].disqualified) {
-                    gameState.activeTeam = (gameState.activeTeam + 1) % 2;
-                    if (gameState.teams[gameState.activeTeam].disqualified) {
-                        gameState.gameOver = true;
-                        document.getElementById('message').innerText = "みんな おわりです...";
-                    }
-                }
-            }
-
-            document.getElementById('message').innerText = msg;
-            updateUI();
-        }
-
-        function updateTeamHistory() {
-            // recordScoreで中断されるため、履歴のunshiftはここで行う
-            const team = gameState.teams[gameState.activeTeam];
-            // 最後に押されたボタンの点数を取得する必要があるが、recordScoreの引数を使う
-            // 簡易化のため、recordScore内でスタック保存後に履歴も仮に積んでおく方式に変更
-        }
-
-        // recordScoreを再定義（履歴管理を同期させるため）
-        const originalRecordScore = recordScore;
-        recordScore = function(points) {
-            if (gameState.gameOver || gameState.isSetup) return;
-            soundTap();
-            const team = gameState.teams[gameState.activeTeam];
-            if (team.disqualified) return;
-
-            gameState.stack.push(JSON.parse(JSON.stringify(gameState)));
-
-            if (points === 0) {
-                team.misses++;
-            } else {
-                team.misses = 0;
-                team.score += points;
-            }
-
-            team.history.unshift({ points, score: team.score }); // ここで履歴を積む
+            team.history.unshift({ points, score: team.score });
 
             if (team.score > 50) {
                 soundMistake();
                 team.score = 25;
-                team.history[0].score = 25; // 履歴も修正
+                team.history[0].score = 25;
                 document.getElementById('message').innerText = `${team.name}が 50てんを こえたので 25てんに もどりました！`;
             }
 
@@ -781,7 +691,38 @@
                 }
             }
             updateUI();
-        };
+        }
+
+        function handleMissChoice(choice) {
+            toggleOverlay('miss-choice-overlay', false);
+            const team = gameState.teams[gameState.activeTeam];
+            let msg = "";
+
+            if (choice === 'continue') {
+                soundSuccess();
+                team.misses = 0; // ミスをリセット
+                msg = `${team.name}は まだまだ つづけるよ！`;
+            } else {
+                soundMistake();
+                team.disqualified = true;
+                team.score = 0;
+                showWinner((gameState.activeTeam + 1) % 2); // 相手の勝ち
+                return;
+            }
+
+            if (team.score === 50) {
+                showWinner(gameState.activeTeam);
+            }
+
+            if (!gameState.gameOver) {
+                gameState.activeTeam = (gameState.activeTeam + 1) % 2;
+                if (gameState.teams[gameState.activeTeam].disqualified) {
+                    gameState.activeTeam = (gameState.activeTeam + 1) % 2;
+                }
+            }
+            document.getElementById('message').innerText = msg;
+            updateUI();
+        }
 
         function handleResetChoice(type) {
             toggleOverlay('reset-choice-overlay', false);
@@ -795,7 +736,10 @@
         function undo() {
             soundTap();
             if (gameState.stack.length === 0) return;
-            gameState = gameState.stack.pop();
+            const last = gameState.stack.pop();
+            const currentStack = gameState.stack;
+            gameState = last;
+            gameState.stack = currentStack;
             document.getElementById('message').innerText = "もどしました";
             if (gameState.isSetup) {
                 document.getElementById('setup-overlay').style.display = 'flex';
@@ -856,7 +800,7 @@
                 isSetup: true,
                 stack: []
             };
-            
+
             document.getElementById('winner-overlay').style.display = 'none';
             if (fullReset) {
                 document.getElementById('name-input-0').value = "";
