@@ -650,9 +650,24 @@
             osc.stop(audioCtx.currentTime + duration);
         }
 
+        function playRegretSound() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(330, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
         function soundTap() { playSound(880, 'sine', 0.1); }
         function soundSuccess() { playSound(1320, 'sine', 0.2); }
         function soundMistake() { playSound(220, 'triangle', 0.3); }
+        function soundMiss() { playRegretSound(); }
 
         let gameState = {
             activeTeam: 0,
@@ -744,15 +759,17 @@
 
         function recordScore(points) {
             if (gameState.gameOver || gameState.isSetup) return;
-            soundTap();
+
             const team = gameState.teams[gameState.activeTeam];
             if (team.disqualified) return;
 
             saveState();
 
             if (points === 0) {
+                soundMiss();
                 team.misses++;
             } else {
+                soundTap();
                 team.misses = 0;
                 team.score += points;
             }
