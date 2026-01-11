@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ささっとモルック</title>
     <style>
         :root {
@@ -34,22 +35,26 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            /* iOS Safari viewport height fix */
+            height: 100dvh;
             overflow: hidden;
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         header {
             background-color: var(--primary);
             color: var(--white);
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             box-shadow: var(--shadow);
             z-index: 10;
             position: relative;
+            flex-shrink: 0;
         }
 
         h1 {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1rem;
             letter-spacing: 2px;
         }
 
@@ -76,26 +81,36 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 10px;
-            gap: 10px;
+            padding: 5px 10px;
+            gap: 5px;
             overflow-y: auto;
+            justify-content: center;
         }
 
         .score-board {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 10px;
+            height: 100%;
+            max-height: 45vh;
+            /* Limit height to allow keypad space */
         }
 
         .team-card {
             background: var(--white);
             border-radius: 12px;
-            padding: 10px;
+            padding: 10px 5px;
             text-align: center;
             box-shadow: var(--shadow);
             transition: transform 0.2s;
             position: relative;
             border: 3px solid transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 0;
+            /* Flexbox trick */
         }
 
         .team-card.team-0 {
@@ -108,14 +123,17 @@
 
         .team-card.active.team-0 {
             border-color: var(--red);
+            /* Zoom effect removed for space safety or subtle */
             transform: scale(1.02);
             background: var(--red-light);
+            z-index: 5;
         }
 
         .team-card.active.team-1 {
             border-color: var(--blue);
             transform: scale(1.02);
             background: var(--blue-light);
+            z-index: 5;
         }
 
         .team-card.disqualified {
@@ -125,17 +143,18 @@
         }
 
         .team-icon {
-            width: 60px;
-            height: 60px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background: #f0f0f0;
-            margin: 0 auto 10px;
+            margin: 0 auto 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             overflow: hidden;
             border: 2px solid var(--bg);
+            flex-shrink: 0;
         }
 
         .team-icon img {
@@ -146,12 +165,13 @@
 
         .team-name {
             font-weight: bold;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--grey);
             margin-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 100%;
         }
 
         .team-0 .team-name {
@@ -163,15 +183,17 @@
         }
 
         .current-score {
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: 800;
-            margin: 5px 0;
+            margin: 0;
+            line-height: 1;
         }
 
         .miss-dots {
             display: flex;
             justify-content: center;
-            gap: 5px;
+            gap: 4px;
+            margin-top: 5px;
         }
 
         .dot {
@@ -186,27 +208,50 @@
             border-color: var(--red);
         }
 
+        /* History button inside card */
+        .btn-card-history {
+            margin-top: 5px;
+            background: transparent;
+            border: 1px solid var(--grey);
+            color: var(--grey);
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .active .btn-card-history {
+            border-color: var(--text);
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
         .input-panel {
             background: var(--white);
-            padding: 15px;
-            border-radius: 20px 20px 0 0;
+            padding: 10px;
+            border-radius: 15px 15px 0 0;
             box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
         }
 
         .numpad {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
 
         button {
             border: none;
             border-radius: 8px;
-            padding: 15px 0;
+            padding: 0;
             font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.1s, transform 0.1s;
+            /* Center text */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         button:active {
@@ -217,6 +262,8 @@
             background-color: var(--bg);
             color: var(--text);
             border: 1px solid #e9edc9;
+            height: 48px;
+            /* Fixed height for touch targets */
         }
 
         .btn-score:hover {
@@ -224,21 +271,22 @@
         }
 
         .btn-miss {
-            grid-column: span 1;
+            grid-column: span 4;
             background-color: var(--red);
             color: white;
+            height: 48px;
         }
 
         .controls {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: 8px;
         }
 
         .btn-control {
             flex: 1;
-            padding: 12px;
-            font-size: 0.9rem;
+            height: 40px;
+            font-size: 0.85rem;
             background-color: var(--secondary);
             color: white;
         }
@@ -249,10 +297,14 @@
 
         .status-msg {
             text-align: center;
-            min-height: 1.5rem;
+            min-height: 1.2rem;
+            font-size: 0.9rem;
             font-weight: bold;
             color: var(--red);
-            margin: 5px 0;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         /* 共通オーバーレイ */
@@ -415,20 +467,23 @@
             color: var(--text);
         }
 
-        .history {
+        /* History List Style */
+        .history-list {
             margin-top: 10px;
-            font-size: 0.8rem;
-            color: var(--grey);
-            max-height: 120px;
+            max-height: 300px;
             overflow-y: auto;
             border-top: 1px solid #eee;
-            padding-top: 5px;
         }
 
-        .history-item {
+        .history-row {
             display: flex;
             justify-content: space-between;
-            padding: 2px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #f9f9f9;
+        }
+
+        .history-row:nth-child(even) {
+            background: #fcfcfc;
         }
     </style>
 </head>
@@ -437,7 +492,7 @@
 
     <header>
         <h1>ささっとモルック</h1>
-        <button class="btn-help" onclick="toggleModal(true)">?</button>
+        <button class="btn-help" onclick="toggleModal('help-modal', true)">?</button>
     </header>
 
     <!-- 初期設定オーバーレイ -->
@@ -490,6 +545,20 @@
         </div>
     </div>
 
+    <!-- 履歴モーダル -->
+    <div id="history-modal" class="modal" onclick="toggleModal('history-modal', false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span style="position:absolute; top:15px; right:15px; font-size:1.5rem; cursor:pointer;"
+                onclick="toggleModal('history-modal', false)">&times;</span>
+            <h2 id="history-title" style="margin-top:0; color:var(--primary)">りれき</h2>
+            <div id="history-content" class="history-list">
+                <!-- content -->
+            </div>
+            <button class="btn-control" style="width:100%; margin-top:10px;"
+                onclick="toggleModal('history-modal', false)">とじる</button>
+        </div>
+    </div>
+
     <div class="game-container">
         <div class="score-board">
             <div id="card-0" class="team-card team-0 active" onclick="selectTeam(0)">
@@ -501,7 +570,7 @@
                     <div id="miss-0-2" class="dot"></div>
                     <div id="miss-0-3" class="dot"></div>
                 </div>
-                <div id="history-0" class="history"></div>
+                <button class="btn-card-history" onclick="showHistory(0, event)">りれきをみる</button>
             </div>
             <div id="card-1" class="team-card team-1" onclick="selectTeam(1)">
                 <div id="icon-1" class="team-icon">👤</div>
@@ -512,7 +581,7 @@
                     <div id="miss-1-2" class="dot"></div>
                     <div id="miss-1-3" class="dot"></div>
                 </div>
-                <div id="history-1" class="history"></div>
+                <button class="btn-card-history" onclick="showHistory(1, event)">りれきをみる</button>
             </div>
         </div>
         <div id="message" class="status-msg"></div>
@@ -532,7 +601,7 @@
             <button class="btn-score" onclick="recordScore(10)">10</button>
             <button class="btn-score" onclick="recordScore(11)">11</button>
             <button class="btn-score" onclick="recordScore(12)">12</button>
-            <button class="btn-miss" style="grid-column: span 4;" onclick="recordScore(0)">ミス（0てん）</button>
+            <button class="btn-miss" onclick="recordScore(0)">ミス（0てん）</button>
         </div>
         <div class="controls">
             <button class="btn-control btn-reset" onclick="toggleOverlay('reset-choice-overlay', true)">リセット</button>
@@ -541,10 +610,10 @@
     </div>
 
     <!-- 使い方モーダル -->
-    <div id="help-modal" class="modal" onclick="toggleModal(false)">
+    <div id="help-modal" class="modal" onclick="toggleModal('help-modal', false)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <span style="position:absolute; top:15px; right:15px; font-size:1.5rem; cursor:pointer;"
-                onclick="toggleModal(false)">&times;</span>
+                onclick="toggleModal('help-modal', false)">&times;</span>
             <h2 style="margin-top:0; color:var(--primary)">つかいかた</h2>
             <ul style="padding-left:20px; line-height:1.6; font-size:0.9rem">
                 <li><strong>じゅんび</strong>: なまえをいれて、しゃしんを とって、はじめる チームを えらびます。</li>
@@ -554,7 +623,8 @@
                 <li><strong>3かい ミス</strong>: 3かい つづけて 0てんに なると、どうするか えらべます。</li>
                 <li><strong>まった（Undo）</strong>: まちがえたら 「まった」ボタンで もどせます。</li>
             </ul>
-            <button class="btn-control" style="width:100%; margin-top:10px;" onclick="toggleModal(false)">とじる</button>
+            <button class="btn-control" style="width:100%; margin-top:10px;"
+                onclick="toggleModal('help-modal', false)">とじる</button>
         </div>
     </div>
 
@@ -597,7 +667,7 @@
 
         function saveState() {
             const clone = JSON.parse(JSON.stringify(gameState, (key, value) => {
-                if (key === 'stack') return undefined; // スタックは保存しない
+                if (key === 'stack') return undefined;
                 return value;
             }));
             gameState.stack.push(clone);
@@ -605,6 +675,11 @@
         }
 
         function toggleOverlay(id, show) {
+            soundTap();
+            document.getElementById(id).style.display = show ? 'flex' : 'none';
+        }
+
+        function toggleModal(id, show) {
             soundTap();
             document.getElementById(id).style.display = show ? 'flex' : 'none';
         }
@@ -637,16 +712,34 @@
             updateUI();
         }
 
-        function toggleModal(show) {
-            soundTap();
-            document.getElementById('help-modal').style.display = show ? 'flex' : 'none';
-        }
-
         function selectTeam(index) {
             if (gameState.gameOver || gameState.isSetup || gameState.teams[index].disqualified) return;
             soundTap();
             gameState.activeTeam = index;
             updateUI();
+        }
+
+        function showHistory(index, event) {
+            if (event) event.stopPropagation();
+            soundTap();
+            const team = gameState.teams[index];
+            document.getElementById('history-title').innerText = `${team.name} のりれき`;
+
+            const content = document.getElementById('history-content');
+            if (team.history.length === 0) {
+                content.innerHTML = '<p style="text-align:center;">まだ りれきが ありません</p>';
+            } else {
+                content.innerHTML = team.history.map((h, i) => `
+                    <div class="history-row">
+                        <span>#${team.history.length - i}</span>
+                        <span style="font-weight:bold; color:${h.points === 0 ? 'red' : 'inherit'}">
+                            ${h.points === 0 ? 'ミス' : '+' + h.points + 'てん'}
+                        </span>
+                        <span>→ ${h.score}てん</span>
+                    </div>
+                `).join('');
+            }
+            toggleModal('history-modal', true);
         }
 
         function recordScore(points) {
@@ -751,7 +844,6 @@
             gameState.teams.forEach((team, i) => {
                 const scoreEl = document.getElementById(`score-${i}`);
                 const cardEl = document.getElementById(`card-${i}`);
-                const histEl = document.getElementById(`history-${i}`);
                 const nameEl = document.getElementById(`team-display-name-${i}`);
 
                 scoreEl.innerText = team.score;
@@ -761,10 +853,6 @@
                 for (let m = 1; m <= 3; m++) {
                     document.getElementById(`miss-${i}-${m}`).className = `dot ${m <= team.misses ? 'missed' : ''}`;
                 }
-
-                histEl.innerHTML = team.history.map(h =>
-                    `<div class="history-item"><span>+${h.points}</span> <span>→ ${h.score}</span></div>`
-                ).join('');
 
                 const iconDiv = document.getElementById(`icon-${i}`);
                 const previewDiv = document.getElementById(`preview-${i}`);
@@ -800,29 +888,21 @@
                 isSetup: true,
                 stack: []
             };
-
-            document.getElementById('winner-overlay').style.display = 'none';
-            if (fullReset) {
-                document.getElementById('name-input-0').value = "";
-                document.getElementById('name-input-1').value = "";
-                document.getElementById('setup-overlay').style.display = 'flex';
-            } else {
-                // 名前と写真そのままの場合は、先行選択だけさせる
-                document.getElementById('setup-overlay').style.display = 'flex';
-            }
             document.getElementById('message').innerText = "";
             updateUI();
+            if (fullReset) {
+                document.getElementById('setup-overlay').style.display = 'flex';
+                // Reset inputs
+                document.getElementById('name-input-0').value = "";
+                document.getElementById('name-input-1').value = "";
+                document.getElementById('preview-0').innerHTML = "👤";
+                document.getElementById('preview-1').innerHTML = "👤";
+            }
         }
 
-        document.addEventListener('touchstart', function (event) {
-            if (event.touches.length > 1) {
-                event.preventDefault();
-            }
-        }, { passive: false });
-
+        // Initialize
         updateUI();
     </script>
-
 </body>
 
 </html>
