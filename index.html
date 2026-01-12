@@ -906,10 +906,16 @@
                 const scoreEl = document.getElementById(`score-${i}`);
                 const cardEl = document.getElementById(`card-${i}`);
                 const nameEl = document.getElementById(`team-display-name-${i}`);
+                const badgeEl = document.getElementById(`turn-badge-${i}`);
 
                 scoreEl.innerText = team.score;
                 nameEl.innerText = team.name;
                 cardEl.className = `team-card team-${i} ${i === gameState.activeTeam ? 'active' : ''} ${team.disqualified ? 'disqualified' : ''}`;
+
+                // Update turn badge with team name
+                if (i === gameState.activeTeam) {
+                    badgeEl.innerText = `つぎは ${team.name} のターン！`;
+                }
 
                 for (let m = 1; m <= 3; m++) {
                     document.getElementById(`miss-${i}-${m}`).className = `dot ${m <= team.misses ? 'missed' : ''}`;
