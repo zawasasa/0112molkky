@@ -123,23 +123,60 @@
 
         .team-card.active.team-0 {
             border-color: var(--red);
-            /* Zoom effect removed for space safety or subtle */
-            transform: scale(1.02);
+            border-width: 4px;
+            transform: scale(1.05);
             background: var(--red-light);
             z-index: 5;
+            box-shadow: 0 4px 20px rgba(188, 71, 73, 0.4);
         }
 
         .team-card.active.team-1 {
             border-color: var(--blue);
-            transform: scale(1.02);
+            border-width: 4px;
+            transform: scale(1.05);
             background: var(--blue-light);
             z-index: 5;
+            box-shadow: 0 4px 20px rgba(69, 123, 157, 0.4);
         }
 
         .team-card.disqualified {
             opacity: 0.5;
             background: #eee !important;
             border-color: transparent !important;
+        }
+
+        .turn-badge {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .team-card.active .turn-badge {
+            opacity: 1;
+            visibility: visible;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: translateX(-50%) scale(1);
+            }
+            50% {
+                transform: translateX(-50%) scale(1.05);
+            }
         }
 
         .team-icon {
@@ -562,6 +599,7 @@
     <div class="game-container">
         <div class="score-board">
             <div id="card-0" class="team-card team-0 active" onclick="selectTeam(0)">
+                <div id="turn-badge-0" class="turn-badge">あなたの番！</div>
                 <div id="icon-0" class="team-icon">👤</div>
                 <div id="team-display-name-0" class="team-name">TEAM A</div>
                 <div id="score-0" class="current-score">0</div>
@@ -573,6 +611,7 @@
                 <button class="btn-card-history" onclick="showHistory(0, event)">りれきをみる</button>
             </div>
             <div id="card-1" class="team-card team-1" onclick="selectTeam(1)">
+                <div id="turn-badge-1" class="turn-badge">あなたの番！</div>
                 <div id="icon-1" class="team-icon">👤</div>
                 <div id="team-display-name-1" class="team-name">TEAM B</div>
                 <div id="score-1" class="current-score">0</div>
@@ -867,10 +906,16 @@
                 const scoreEl = document.getElementById(`score-${i}`);
                 const cardEl = document.getElementById(`card-${i}`);
                 const nameEl = document.getElementById(`team-display-name-${i}`);
+                const badgeEl = document.getElementById(`turn-badge-${i}`);
 
                 scoreEl.innerText = team.score;
                 nameEl.innerText = team.name;
                 cardEl.className = `team-card team-${i} ${i === gameState.activeTeam ? 'active' : ''} ${team.disqualified ? 'disqualified' : ''}`;
+
+                // Update turn badge with team name
+                if (i === gameState.activeTeam) {
+                    badgeEl.innerText = `つぎは ${team.name} のターン！`;
+                }
 
                 for (let m = 1; m <= 3; m++) {
                     document.getElementById(`miss-${i}-${m}`).className = `dot ${m <= team.misses ? 'missed' : ''}`;
@@ -912,14 +957,35 @@
             };
             document.getElementById('message').innerText = "";
             updateUI();
+
+            const setupOverlay = document.getElementById('setup-overlay');
+            const modalTitle = setupOverlay.querySelector('.modal-title');
+            const nameInputs = setupOverlay.querySelectorAll('.team-input');
+            const photoBtns = setupOverlay.querySelectorAll('.photo-btn');
+            const hintText = setupOverlay.querySelector('p');
+
             if (fullReset) {
-                document.getElementById('setup-overlay').style.display = 'flex';
-                // Reset inputs
+                // Full reset: show all input elements
                 document.getElementById('name-input-0').value = "";
                 document.getElementById('name-input-1').value = "";
                 document.getElementById('preview-0').innerHTML = "👤";
                 document.getElementById('preview-1').innerHTML = "👤";
+                nameInputs.forEach(el => el.style.display = '');
+                photoBtns.forEach(el => el.style.display = '');
+                if (hintText) hintText.style.display = '';
+                modalTitle.innerText = 'たいせんの じゅんび';
+            } else {
+                // Game reset: hide name/photo inputs, only show team selection
+                // Preserve current team names in input fields so startGame reads them correctly
+                document.getElementById('name-input-0').value = oldTeams[0].name;
+                document.getElementById('name-input-1').value = oldTeams[1].name;
+                nameInputs.forEach(el => el.style.display = 'none');
+                photoBtns.forEach(el => el.style.display = 'none');
+                if (hintText) hintText.style.display = 'none';
+                modalTitle.innerText = 'せんこうを えらぶ';
             }
+
+            setupOverlay.style.display = 'flex';
         }
 
         // Initialize
