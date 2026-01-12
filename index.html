@@ -628,7 +628,7 @@
         </div>
     </div>
 
-    <div id="winner-overlay" class="overlay" style="display:none" onclick="toggleOverlay('reset-choice-overlay', true)">
+    <div id="winner-overlay" class="overlay" style="display:none" onclick="handleWinnerClick()">
         <div id="winner-crown" style="font-size: 5rem;">👑</div>
         <h2 id="winner-text" style="font-size:2rem">かち！</h2>
         <p>画面をタップしてリセット</p>
@@ -668,6 +668,11 @@
         function soundSuccess() { playSound(1320, 'sine', 0.2); }
         function soundMistake() { playSound(220, 'triangle', 0.3); }
         function soundMiss() { playRegretSound(); }
+
+        function handleWinnerClick() {
+            toggleOverlay('winner-overlay', false);
+            toggleOverlay('reset-choice-overlay', true);
+        }
 
         let gameState = {
             activeTeam: 0,
